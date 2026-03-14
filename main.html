@@ -418,3 +418,87 @@
       <h4 class="mt-2">Networks</h4>
       <p>Use the RPC URL field to point to any EVM chain where JupiterScan is deployed (Ethereum, Polygon, BSC, Arbitrum, Base, etc.).</p>
 
+      <h4 class="mt-2">How to use CatCodeLive</h4>
+      <ol class="help-text" style="list-style:decimal; padding-left: 1.5rem;">
+        <li>Enter your JupiterScan contract address in the header (0x followed by 40 hex characters).</li>
+        <li>Optionally set a custom RPC URL if you are not on Ethereum mainnet.</li>
+        <li>Click Connect to load the contract state: pulse count, slots, fees, rewards, and balance.</li>
+        <li>To submit pulses or claim rewards, click Connect wallet and approve the connection in MetaMask (or your wallet).</li>
+        <li>On the Dashboard tab you see the main stats and a global stats table.</li>
+        <li>On the Pulses tab you can load pages of pulses by page number.</li>
+        <li>On the Slots tab you see all slots with their block ranges and pulse counts.</li>
+        <li>On the Scanner tab enter any address to see their scanner profile (stake, pulses, confirmed, banned, rewards claimed). The leaderboard shows top scanners by confirmed pulses.</li>
+        <li>On the Claim tab click Refresh claimable to list your claimable rewards; then click Claim next to each to send the claim transaction.</li>
+        <li>On the Actions tab you can register as a scanner (stake minimum 0.05 ETH) or deposit an optional fee to a pulse by ID.</li>
+      </ol>
+
+      <h4 class="mt-2">Submit pulse form</h4>
+      <p>Trend: any string (e.g. trend.defi). It will be hashed with Keccak256 on submit. Magnitude: number in ETH units (e.g. 1e16 for 0.01 ETH scale). Slot: the slot index (use 0 or the current slot from the contract).</p>
+
+      <h4 class="mt-2">Security notes</h4>
+      <p>Never share your private key. CatCodeLive runs in your browser and only sends transactions when you click actions (Submit, Claim, Register, Deposit). Contract address and RPC URL are stored in localStorage for convenience.</p>
+
+      <h4 class="mt-2">JupiterScan contract constants (reference)</h4>
+      <p>Slot duration: 6471 blocks. Min scanner stake: 0.05 ETH. Reward claim window: 4032 blocks after confirmation. Cooldown between submissions: 12 blocks. Max pulse magnitude: 1e18. Protocol version: 304.</p>
+
+      <h4 class="mt-2">API compatibility</h4>
+      <p>CatCodeLive can be driven from the console: use window.CatCodeLive to access connectContract, connectWallet, loadPulses, loadSlots, fillGlobalStatsTable, refreshClaimable, exportSnapshotJson, downloadText, startAutoRefresh, stopAutoRefresh, getCurrentSlotFromContract, formatEth, weiToEth, shortAddr, validateAddress, parseMagnitude, showToast. Example: CatCodeLive.exportSnapshotJson().then(CatCodeLive.downloadText.bind(null, 'snapshot.json')).</p>
+    </section>
+
+    <p class="footer-note">CatCodeLive – JupiterScan scanner UI. Connect your wallet and contract to submit pulses and claim rewards.</p>
+  </main>
+
+  <div id="toast" class="toast" style="display:none"></div>
+
+  <script src="app.js"></script>
+  <script>
+    (function() {
+      const JUPITER_ABI = [
+        "function pulseCounter() view returns (uint256)",
+        "function slotCounter() view returns (uint256)",
+        "function totalFeesCollected() view returns (uint256)",
+        "function totalRewardsPaid() view returns (uint256)",
+        "function emergencyPaused() view returns (bool)",
+        "function getSnapshot() view returns (uint256 pulseCount_, uint256 slotCount_, uint256 totalFees_, uint256 totalRewards_, uint256 balance_, bool paused_)",
+        "function getPulse(uint256) view returns (address, bytes32, uint256, uint256, uint256, bool, bool, uint256, uint256)",
+        "function getSlot(uint256) view returns (uint256, uint256, uint256, uint256, uint256, bool)",
+        "function getCurrentSlotIndex() view returns (uint256)",
+        "function submitPulse(bytes32 trendHash, uint256 magnitude, uint256 slotIndex)",
+        "function registerScanner() payable",
+        "function getScanner(address) view returns (uint256, uint256, uint256, uint256, bool, uint256)",
+        "function getRewardForPulse(uint256) view returns (uint256)",
+        "function claimReward(uint256)",
+        "function canSubmit(address, uint256) view returns (bool)",
+        "function getGlobalStats() view returns (uint256, uint256, uint256, uint256, uint256, uint256, uint256)",
+        "function getScannerPulseIds(address, uint256, uint256) view returns (uint256[])",
+        "function hasClaimed(uint256, address) view returns (bool)"
+      ];
+
+      let provider = null;
+      let signer = null;
+      let contract = null;
+      let contractAddress = '';
+      const PAGE_SIZE = 15;
+      const defaultRpc = 'https://eth.llamarpc.com';
+      const el = (id) => document.getElementById(id);
+
+      function showToast(msg, type) {
+        const t = el('toast');
+        t.textContent = msg;
+        t.className = 'toast ' + (type || 'info');
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none'; }, 4000);
+      }
+      function weiToEth(wei) {
+        if (typeof wei !== 'bigint') wei = BigInt(wei);
+        return Number(wei) / 1e18;
+      }
+      function formatEth(wei) {
+        return weiToEth(wei).toFixed(6) + ' ETH';
+      }
+      function shortAddr(addr) {
+        if (!addr) return '';
+        const s = String(addr);
+        return s.slice(0, 6) + '…' + s.slice(-4);
+      }
+
