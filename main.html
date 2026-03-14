@@ -82,3 +82,87 @@
     .btn:hover { background: var(--accent-dim); }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-ghost {
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .btn-ghost:hover { background: rgba(0, 212, 170, 0.1); }
+    .main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem;
+    }
+    .card h3 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .card .value {
+      font-family: var(--font-mono);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .card .value.small { font-size: 1rem; }
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 1.5rem 0 0.75rem;
+      color: var(--text);
+    }
+    .pulse-list, .slot-list {
+      list-style: none;
+    }
+    .pulse-item, .slot-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .pulse-id { color: var(--accent); font-weight: 600; }
+    .pulse-mag { color: var(--text-muted); }
+    .pulse-status { font-size: 0.75rem; }
+    .pulse-status.confirmed { color: var(--success); }
+    .pulse-status.rejected { color: var(--danger); }
+    .pulse-status.pending { color: var(--text-muted); }
+    .slot-item {
+      grid-template-columns: auto 1fr 1fr auto;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .status-badge.paused { background: rgba(248, 81, 73, 0.2); color: var(--danger); }
+    .status-badge.live { background: rgba(63, 185, 80, 0.2); color: var(--success); }
+    .form-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .form-row input, .form-row select {
+      background: var(--bg-card);
