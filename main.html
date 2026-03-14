@@ -334,3 +334,87 @@
         <input type="text" id="submitMagnitude" placeholder="1e16" style="width:120px" />
       </div>
       <div class="form-row">
+        <label>Slot</label>
+        <input type="number" id="submitSlot" placeholder="0" min="0" style="width:80px" />
+      </div>
+      <div class="form-row">
+        <button type="button" class="btn" id="btnSubmitPulse">Submit pulse</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button type="button" data-tab="dashboard" class="active">Dashboard</button>
+      <button type="button" data-tab="pulses">Pulses</button>
+      <button type="button" data-tab="slots">Slots</button>
+      <button type="button" data-tab="scanner">Scanner</button>
+      <button type="button" data-tab="claim">Claim</button>
+      <button type="button" data-tab="actions">Actions</button>
+    </div>
+    <div id="tab-dashboard" class="tab-panel active">
+      <p class="section-title">Global stats</p>
+      <div class="table-wrap">
+        <table id="globalStatsTable">
+          <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="tab-pulses" class="tab-panel">
+      <p class="section-title">All pulses (paginated)</p>
+      <div class="form-row"><input type="number" id="pulsePage" value="1" min="1" style="width:80px" /><button type="button" class="btn" id="btnLoadPulsePage">Load page</button></div>
+      <ul class="pulse-list" id="pulseListFull"></ul>
+    </div>
+    <div id="tab-slots" class="tab-panel">
+      <p class="section-title">All slots</p>
+      <ul class="slot-list" id="slotListFull"></ul>
+    </div>
+    <div id="tab-scanner" class="tab-panel">
+      <p class="section-title">Scanner lookup</p>
+      <div class="card">
+        <div class="form-row"><label>Address</label><input type="text" id="scannerAddress" placeholder="0x..." style="width:400px" /><button type="button" class="btn" id="btnLookupScanner">Lookup</button></div>
+        <div id="scannerResult" class="card" style="margin-top:1rem;display:none"></div>
+      </div>
+      <p class="section-title">Leaderboard (by confirmed pulses)</p>
+      <div id="leaderboardList"></div>
+    </div>
+    <div id="tab-claim" class="tab-panel">
+      <p class="section-title">Claimable rewards</p>
+      <p class="refresh-info">Connect wallet and contract, then click Refresh. Claim each reward below.</p>
+      <button type="button" class="btn" id="btnRefreshClaimable">Refresh claimable</button>
+      <div id="claimableList" style="margin-top:1rem"></div>
+    </div>
+    <div id="tab-actions" class="tab-panel">
+      <p class="section-title">Register as scanner</p>
+      <div class="card">
+        <p class="text-muted" style="font-size:0.9rem">Stake minimum 0.05 ETH to register. Requires wallet.</p>
+        <div class="form-row"><label>Stake (ETH)</label><input type="text" id="registerStake" value="0.05" style="width:100px" /><button type="button" class="btn" id="btnRegister">Register / Add stake</button></div>
+      </div>
+      <p class="section-title">Deposit fee (optional)</p>
+      <div class="card">
+        <div class="form-row"><label>Pulse ID</label><input type="number" id="depositPulseId" min="1" style="width:80px" /><label>Amount (ETH)</label><input type="text" id="depositAmount" value="0.001" style="width:100px" /><button type="button" class="btn" id="btnDeposit">Deposit</button></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <section class="about-section">
+      <h4>About CatCodeLive</h4>
+      <p>CatCodeLive is the web interface for JupiterScan – a trend pulse scanner on EVM. Submit momentum signals (pulses), aggregate confidence, and claim scan rewards. Stay ahead of moves.</p>
+      <p>Connect your contract address and (optionally) your wallet to submit pulses, register as a scanner with stake, deposit fees, and claim rewards for confirmed pulses.</p>
+      <h4 class="mt-2">Contract methods used</h4>
+      <ul class="help-text" style="list-style:disc; padding-left: 1.5rem;">
+        <li>getSnapshot() – pulse count, slot count, fees, rewards, balance, paused</li>
+        <li>getPulse(id) – scanner, trendHash, magnitude, slotIndex, submitBlock, confirmed, rejected, confidenceScore, confirmBlock</li>
+        <li>getSlot(index) – startBlock, endBlock, pulseCount, totalMagnitude, winningMagnitude, closed</li>
+        <li>submitPulse(trendHash, magnitude, slotIndex) – submit a trend pulse (requires wallet)</li>
+        <li>registerScanner() – payable; stake to register as scanner</li>
+        <li>claimReward(pulseId) – claim reward for a confirmed pulse</li>
+        <li>depositFee(pulseId) – payable; attach fee to a pulse</li>
+        <li>getScanner(addr) – stake, totalPulses, confirmedPulses, lastSubmitBlock, banned, totalRewardsClaimed</li>
+        <li>getRewardForPulse(pulseId) – claimable reward amount</li>
+        <li>getGlobalStats() – totalPulses, confirmedPulses, rejectedPulses, pendingPulses, totalSlots, totalFees, totalRewards</li>
+      </ul>
+      <h4 class="mt-2">Trend categories</h4>
+      <p>Use trend strings like trend.defi, trend.nft, trend.meme, trend.gaming, or trend.other when submitting pulses (hashed on-chain).</p>
+      <h4 class="mt-2">Networks</h4>
+      <p>Use the RPC URL field to point to any EVM chain where JupiterScan is deployed (Ethereum, Polygon, BSC, Arbitrum, Base, etc.).</p>
+
