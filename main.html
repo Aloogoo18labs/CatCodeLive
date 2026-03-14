@@ -502,3 +502,87 @@
         return s.slice(0, 6) + '…' + s.slice(-4);
       }
 
+      function switchTab(tabId) {
+        document.querySelectorAll('.tabs button').forEach(b => { b.classList.remove('active'); if (b.dataset.tab === tabId) b.classList.add('active'); });
+        document.querySelectorAll('.tab-panel').forEach(p => { p.classList.remove('active'); if (p.id === 'tab-' + tabId) p.classList.add('active'); });
+      }
+      document.querySelectorAll('.tabs button').forEach(b => {
+        b.addEventListener('click', () => switchTab(b.dataset.tab));
+      });
+
+      async function connectContract() {
+        const addr = (el('contractAddress').value || '').trim();
+        const rpc = (el('rpcUrl').value || '').trim() || defaultRpc;
+        if (!addr || !addr.startsWith('0x')) { showToast('Enter a valid contract address', 'error'); return; }
+        try {
+          provider = new ethers.JsonRpcProvider(rpc);
+          contract = new ethers.Contract(addr, JUPITER_ABI, provider);
+          contractAddress = addr;
+          const [pulseCount, slotCount, totalFees, totalRewards, balance, paused] = await contract.getSnapshot();
+          el('pulseCount').textContent = pulseCount.toString();
+          el('slotCount').textContent = slotCount.toString();
+          el('totalFees').textContent = formatEth(totalFees);
+          el('totalRewards').textContent = formatEth(totalRewards);
+          el('balance').textContent = formatEth(balance);
+          el('pausedBadge').innerHTML = paused ? '<span class="status-badge paused">Paused</span>' : '<span class="status-badge live">Live</span>';
+          await loadPulses();
+          await loadSlots();
+          await fillGlobalStatsTable();
+          await loadSlotListFull();
+          showToast('Contract connected', 'success');
+        } catch (e) {
+          showToast('Connect failed: ' + (e.message || e), 'error');
+        }
+      }
+
+      async function fillGlobalStatsTable() {
+        if (!contract) return;
+        const tbody = el('globalStatsTable').querySelector('tbody');
+        tbody.innerHTML = '';
+        try {
+          const [pc, sc, tf, tr, bal, paused] = await contract.getSnapshot();
+          const rows = [
+            ['Pulse count', pc.toString()],
+            ['Slot count', sc.toString()],
+            ['Total fees', formatEth(tf)],
+            ['Total rewards paid', formatEth(tr)],
+            ['Contract balance', formatEth(bal)],
+            ['Paused', paused ? 'Yes' : 'No']
+          ];
+          const gs = await contract.getGlobalStats().catch(() => null);
+          if (gs) {
+            rows.push(['Confirmed pulses', gs[1].toString()], ['Rejected pulses', gs[2].toString()], ['Pending pulses', gs[3].toString()]);
+          }
+          rows.forEach(([k, v]) => {
+            const tr_ = document.createElement('tr');
+            tr_.innerHTML = '<td>' + k + '</td><td class="value small">' + v + '</td>';
+            tbody.appendChild(tr_);
+          });
+        } catch (e) {
+          tbody.innerHTML = '<tr><td colspan="2">Error: ' + (e.message || e) + '</td></tr>';
+        }
+      }
+
+      async function loadPulses() {
+        if (!contract) return;
+        try {
+          const count = await contract.pulseCounter();
+          const list = el('pulseList');
+          list.innerHTML = '';
+          const max = Math.min(Number(count), 20);
+          for (let i = max; i >= 1 && i > max - 15; i--) {
+            const p = await contract.getPulse(i);
+            const [scanner, trendHash, magnitude, slotIndex, submitBlock, confirmed, rejected] = p;
+            const status = confirmed ? 'confirmed' : (rejected ? 'rejected' : 'pending');
+            const li = document.createElement('li');
+            li.className = 'pulse-item';
+            li.innerHTML = '<span class="pulse-id">#' + i + '</span><span class="pulse-mag">slot=' + slotIndex + ' mag=' + magnitude.toString() + '</span><span class="pulse-status ' + status + '">' + status + '</span><span class="pulse-mag">' + shortAddr(scanner) + '</span>';
+            list.appendChild(li);
+          }
+          if (max === 0) list.innerHTML = '<li class="pulse-item"><span class="pulse-mag">No pulses yet.</span></li>';
+        } catch (e) {
+          el('pulseList').innerHTML = '<li class="pulse-item"><span class="pulse-mag">Error: ' + (e.message || e) + '</span></li>';
+        }
+      }
+
+      async function loadSlots() {
