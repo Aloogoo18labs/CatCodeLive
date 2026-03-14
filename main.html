@@ -754,3 +754,87 @@
         const ethStr = (el('depositAmount').value || '0.001').trim();
         const valueWei = BigInt(Math.floor(parseFloat(ethStr) * 1e18));
         if (!pulseId || valueWei <= 0n) { showToast('Invalid pulse ID or amount', 'error'); return; }
+        try {
+          const tx = await contract.depositFee(pulseId, { value: valueWei });
+          showToast('Tx: ' + tx.hash, 'info');
+          await tx.wait();
+          showToast('Deposited', 'success');
+        } catch (e) {
+          showToast('Deposit failed: ' + (e.message || e), 'error');
+        }
+      }
+
+      async function connectWallet() {
+        if (!window.ethereum) { showToast('Install MetaMask or another Web3 wallet', 'error'); return; }
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          provider = new ethers.BrowserProvider(window.ethereum);
+          signer = await provider.getSigner();
+          el('walletInfo').textContent = 'Wallet: ' + shortAddr(accounts[0]);
+          if (contractAddress) contract = new ethers.Contract(contractAddress, JUPITER_ABI, signer);
+          showToast('Wallet connected', 'success');
+        } catch (e) {
+          showToast('Wallet connect failed: ' + (e.message || e), 'error');
+        }
+      }
+
+      async function submitPulse() {
+        if (!contract || !signer) { showToast('Connect wallet and contract first', 'error'); return; }
+        const trend = (el('submitTrend').value || 'trend.other').trim();
+        const magStr = (el('submitMagnitude').value || '1e16').trim();
+        let slot = parseInt(el('submitSlot').value, 10);
+        if (isNaN(slot)) slot = 0;
+        const magnitude = BigInt(Math.floor(parseFloat(magStr) * 1e18));
+        const trendHash = ethers.keccak256(ethers.toUtf8Bytes(trend));
+        try {
+          const tx = await contract.submitPulse(trendHash, magnitude, slot);
+          showToast('Tx sent: ' + tx.hash, 'info');
+          await tx.wait();
+          showToast('Pulse submitted', 'success');
+          await loadPulses();
+          await loadSlots();
+        } catch (e) {
+          showToast('Submit failed: ' + (e.message || e), 'error');
+        }
+      }
+
+      el('btnConnect').addEventListener('click', connectContract);
+      el('btnSubmitPulse').addEventListener('click', submitPulse);
+      el('btnLoadPulsePage').addEventListener('click', loadPulsePage);
+      el('btnLookupScanner').addEventListener('click', lookupScanner);
+      el('btnRefreshClaimable').addEventListener('click', refreshClaimable);
+      el('btnRegister').addEventListener('click', doRegister);
+      el('btnDeposit').addEventListener('click', doDeposit);
+      document.querySelectorAll('.tabs button').forEach(b => { if (b.dataset.tab === 'scanner') b.addEventListener('click', () => buildLeaderboard()); });
+      if (window.ethereum) {
+        const btnWallet = document.createElement('button');
+        btnWallet.className = 'btn btn-ghost';
+        btnWallet.textContent = 'Connect wallet';
+        btnWallet.onclick = connectWallet;
+        el('connector').appendChild(btnWallet);
+      }
+      const storedAddr = localStorage.getItem('catcodelive_contract');
+      const storedRpc = localStorage.getItem('catcodelive_rpc');
+      if (storedAddr) el('contractAddress').value = storedAddr;
+      if (storedRpc) el('rpcUrl').value = storedRpc;
+      el('contractAddress').addEventListener('change', () => localStorage.setItem('catcodelive_contract', el('contractAddress').value));
+      el('rpcUrl').addEventListener('change', () => localStorage.setItem('catcodelive_rpc', el('rpcUrl').value));
+
+      function validateAddress(addr) {
+        if (!addr || typeof addr !== 'string') return false;
+        return /^0x[a-fA-F0-9]{40}$/.test(addr);
+      }
+      function parseMagnitude(s) {
+        const n = parseFloat(String(s).trim());
+        if (isNaN(n) || n <= 0) return null;
+        return BigInt(Math.floor(n * 1e18));
+      }
+      function formatBlock(b) {
+        if (b === undefined || b === null) return '–';
+        return Number(b).toLocaleString();
+      }
+      async function exportSnapshotJson() {
+        if (!contract) return null;
+        const [pulseCount, slotCount, totalFees, totalRewards, balance, paused] = await contract.getSnapshot();
+        const gs = await contract.getGlobalStats().catch(() => null);
+        const out = {
