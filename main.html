@@ -838,3 +838,83 @@
         const [pulseCount, slotCount, totalFees, totalRewards, balance, paused] = await contract.getSnapshot();
         const gs = await contract.getGlobalStats().catch(() => null);
         const out = {
+          contract: contractAddress,
+          at: new Date().toISOString(),
+          snapshot: { pulseCount: pulseCount.toString(), slotCount: slotCount.toString(), totalFees: totalFees.toString(), totalRewards: totalRewards.toString(), balance: balance.toString(), paused },
+          globalStats: gs ? { totalPulses: gs[0].toString(), confirmedPulses: gs[1].toString(), rejectedPulses: gs[2].toString(), pendingPulses: gs[3].toString(), totalSlots: gs[4].toString(), totalFees: gs[5].toString(), totalRewards: gs[6].toString() } : null
+        };
+        return JSON.stringify(out, null, 2);
+      }
+      function downloadText(filename, text) {
+        const a = document.createElement('a');
+        a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(text);
+        a.download = filename;
+        a.click();
+      }
+      let refreshIntervalId = null;
+      function startAutoRefresh(sec) {
+        if (refreshIntervalId) clearInterval(refreshIntervalId);
+        refreshIntervalId = setInterval(() => { if (contract) connectContract(); }, (sec || 30) * 1000);
+      }
+      function stopAutoRefresh() {
+        if (refreshIntervalId) { clearInterval(refreshIntervalId); refreshIntervalId = null; }
+      }
+      function getCurrentSlotFromContract() {
+        if (!contract) return null;
+        return contract.getCurrentSlotIndex().then(i => Number(i)).catch(() => null);
+      }
+      function getPulseReward(pulseId) {
+        if (!contract) return Promise.resolve(null);
+        return contract.getRewardForPulse(pulseId).then(r => r).catch(() => null);
+      }
+      function getCanSubmit(addr, slotIndex) {
+        if (!contract) return Promise.resolve(false);
+        return contract.canSubmit(addr, slotIndex).catch(() => false);
+      }
+      function getHasClaimed(pulseId, addr) {
+        if (!contract) return Promise.resolve(false);
+        return contract.hasClaimed(pulseId, addr).catch(() => false);
+      }
+      function truncateHash(h, len) {
+        if (!h || typeof h !== 'string') return '';
+        if (h.length <= len) return h;
+        return h.slice(0, len) + '…';
+      }
+      function formatWeiShort(wei) {
+        const n = Number(wei);
+        if (n >= 1e18) return (n / 1e18).toFixed(4) + ' ETH';
+        if (n >= 1e15) return (n / 1e15).toFixed(2) + ' finney';
+        return n + ' wei';
+      }
+      function copyToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(text);
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      window.CatCodeLive = {
+        connectContract,
+        connectWallet,
+        loadPulses,
+        loadSlots,
+        fillGlobalStatsTable,
+        refreshClaimable,
+        exportSnapshotJson,
+        downloadText,
+        startAutoRefresh,
+        stopAutoRefresh,
+        getCurrentSlotFromContract,
+        formatEth,
+        weiToEth,
+        shortAddr,
+        validateAddress,
+        parseMagnitude,
+        showToast
+      };
+    })();
+  </script>
+</body>
+</html>
