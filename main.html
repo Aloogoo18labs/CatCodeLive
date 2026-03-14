@@ -670,3 +670,87 @@
         if (!contract) { list.innerHTML = 'Connect contract first.'; return; }
         try {
           const count = await contract.pulseCounter();
+          const byAddr = {};
+          for (let i = 1; i <= Math.min(Number(count), 500); i++) {
+            const p = await contract.getPulse(i);
+            const [scanner] = p;
+            const addr = scanner.toLowerCase();
+            if (!byAddr[addr]) byAddr[addr] = { addr: scanner, confirmed: 0, total: 0 };
+            byAddr[addr].total++;
+            if (p[5]) byAddr[addr].confirmed++;
+          }
+          const arr = Object.values(byAddr).sort((a, b) => b.confirmed - a.confirmed).slice(0, 30);
+          list.innerHTML = '';
+          arr.forEach((item, idx) => {
+            const div = document.createElement('div');
+            div.className = 'leaderboard-item';
+            div.innerHTML = '<span><span class="rank">#' + (idx + 1) + '</span><span class="addr">' + shortAddr(item.addr) + '</span></span><span>confirmed: ' + item.confirmed + ' / ' + item.total + '</span>';
+            list.appendChild(div);
+          });
+          if (arr.length === 0) list.innerHTML = 'No scanners yet.';
+        } catch (e) {
+          list.innerHTML = 'Error: ' + (e.message || e);
+        }
+      }
+
+      async function refreshClaimable() {
+        const list = el('claimableList');
+        list.innerHTML = 'Loading…';
+        if (!contract || !signer) { list.innerHTML = 'Connect wallet and contract.'; return; }
+        try {
+          const myAddr = (await signer.getAddress()).toLowerCase();
+          const ids = await contract.getScannerPulseIds(await signer.getAddress(), 0, 200);
+          const claimable = [];
+          for (const pid of ids) {
+            const claimed = await contract.hasClaimed(pid, await signer.getAddress());
+            if (claimed) continue;
+            const reward = await contract.getRewardForPulse(pid);
+            if (reward && BigInt(reward) > 0n) claimable.push({ pulseId: pid, reward });
+          }
+          list.innerHTML = '';
+          claimable.forEach(({ pulseId, reward }) => {
+            const row = document.createElement('div');
+            row.className = 'claim-row';
+            row.innerHTML = '<span class="pulse-id">#' + pulseId + '</span><span>' + formatEth(reward) + '</span><button type="button" class="btn" data-claim-pulse="' + pulseId + '">Claim</button>';
+            row.querySelector('button').addEventListener('click', () => doClaim(pulseId));
+            list.appendChild(row);
+          });
+          if (claimable.length === 0) list.innerHTML = 'No claimable rewards.';
+        } catch (e) {
+          list.innerHTML = 'Error: ' + (e.message || e);
+        }
+      }
+      async function doClaim(pulseId) {
+        if (!contract || !signer) return;
+        try {
+          const tx = await contract.claimReward(pulseId);
+          showToast('Tx: ' + tx.hash, 'info');
+          await tx.wait();
+          showToast('Claimed', 'success');
+          refreshClaimable();
+        } catch (e) {
+          showToast('Claim failed: ' + (e.message || e), 'error');
+        }
+      }
+
+      async function doRegister() {
+        if (!contract || !signer) { showToast('Connect wallet and contract', 'error'); return; }
+        const ethStr = (el('registerStake').value || '0.05').trim();
+        const valueWei = BigInt(Math.floor(parseFloat(ethStr) * 1e18));
+        if (valueWei <= 0n) { showToast('Invalid stake amount', 'error'); return; }
+        try {
+          const tx = await contract.registerScanner({ value: valueWei });
+          showToast('Tx: ' + tx.hash, 'info');
+          await tx.wait();
+          showToast('Registered', 'success');
+        } catch (e) {
+          showToast('Register failed: ' + (e.message || e), 'error');
+        }
+      }
+
+      async function doDeposit() {
+        if (!contract || !signer) { showToast('Connect wallet and contract', 'error'); return; }
+        const pulseId = parseInt(el('depositPulseId').value, 10);
+        const ethStr = (el('depositAmount').value || '0.001').trim();
+        const valueWei = BigInt(Math.floor(parseFloat(ethStr) * 1e18));
+        if (!pulseId || valueWei <= 0n) { showToast('Invalid pulse ID or amount', 'error'); return; }
