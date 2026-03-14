@@ -250,3 +250,87 @@
     .col { flex: 1; min-width: 200px; }
     .mb-1 { margin-bottom: 0.5rem; }
     .mb-2 { margin-bottom: 1rem; }
+    .mt-1 { margin-top: 0.5rem; }
+    .mt-2 { margin-top: 1rem; }
+    .text-right { text-align: right; }
+    .font-mono { font-family: var(--font-mono); }
+    .text-muted { color: var(--text-muted); }
+    .hidden { display: none !important; }
+    .visible { display: block !important; }
+    .pulse-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 0.75rem; }
+    .pulse-card .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .pulse-card .meta { font-size: 0.85rem; color: var(--text-muted); }
+    .slot-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 0.75rem; }
+    .slot-card .header { font-weight: 600; margin-bottom: 0.5rem; }
+    .slot-card .meta { font-size: 0.85rem; color: var(--text-muted); }
+    .btn-sm { padding: 0.35rem 0.65rem; font-size: 0.85rem; }
+    .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    input[type="number"] { width: 100%; max-width: 120px; }
+    select { background: var(--bg-card); border: 1px solid var(--border); color: var(--text); padding: 0.5rem; border-radius: 8px; font-size: 0.9rem; }
+    label + input { margin-left: 0.5rem; }
+    .section-subtitle { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1 class="app-title">CatCodeLive</h1>
+      <p class="app-subtitle">JupiterScan trend pulse dashboard – stay ahead of moves</p>
+    </div>
+    <div class="connector">
+      <input type="text" id="contractAddress" placeholder="JupiterScan contract address (0x...)" />
+      <input type="text" id="rpcUrl" placeholder="RPC URL (optional)" />
+      <button type="button" class="btn" id="btnConnect">Connect</button>
+      <span id="walletInfo" class="text-muted" style="font-size:0.85rem;color:var(--text-muted)"></span>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="grid" id="statsGrid">
+      <div class="card">
+        <h3>Pulses</h3>
+        <div class="value" id="pulseCount">–</div>
+      </div>
+      <div class="card">
+        <h3>Slots</h3>
+        <div class="value" id="slotCount">–</div>
+      </div>
+      <div class="card">
+        <h3>Total fees</h3>
+        <div class="value small" id="totalFees">–</div>
+      </div>
+      <div class="card">
+        <h3>Total rewards</h3>
+        <div class="value small" id="totalRewards">–</div>
+      </div>
+      <div class="card">
+        <h3>Contract balance</h3>
+        <div class="value small" id="balance">–</div>
+      </div>
+      <div class="card">
+        <h3>Status</h3>
+        <div id="pausedBadge"><span class="status-badge live">Live</span></div>
+      </div>
+    </div>
+
+    <p class="section-title">Recent pulses</p>
+    <ul class="pulse-list" id="pulseList">
+      <li class="pulse-item"><span class="pulse-mag">Connect contract to load pulses.</span></li>
+    </ul>
+
+    <p class="section-title">Slots</p>
+    <ul class="slot-list" id="slotList">
+      <li class="slot-item"><span class="pulse-mag">Connect contract to load slots.</span></li>
+    </ul>
+
+    <p class="section-title">Submit pulse (requires wallet)</p>
+    <div class="card">
+      <div class="form-row">
+        <label>Trend</label>
+        <input type="text" id="submitTrend" placeholder="e.g. trend.defi" style="width:200px" />
+      </div>
+      <div class="form-row">
+        <label>Magnitude</label>
+        <input type="text" id="submitMagnitude" placeholder="1e16" style="width:120px" />
+      </div>
+      <div class="form-row">
