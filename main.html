@@ -586,3 +586,87 @@
       }
 
       async function loadSlots() {
+        if (!contract) return;
+        try {
+          const count = await contract.slotCounter();
+          const list = el('slotList');
+          list.innerHTML = '';
+          for (let i = 0; i < Math.min(Number(count) + 2, 10); i++) {
+            const s = await contract.getSlot(i);
+            const [startBlock, endBlock, pulseCount, totalMagnitude, winningMagnitude, closed] = s;
+            const li = document.createElement('li');
+            li.className = 'slot-item';
+            li.innerHTML = '<span class="pulse-id">Slot ' + i + '</span><span>' + startBlock + '–' + endBlock + '</span><span>pulses=' + pulseCount + ' mag=' + totalMagnitude.toString() + '</span><span class="pulse-status ' + (closed ? 'rejected' : 'pending') + '">' + (closed ? 'closed' : 'open') + '</span>';
+            list.appendChild(li);
+          }
+          if (Number(count) === 0) list.innerHTML = '<li class="slot-item"><span class="pulse-mag">No slots yet.</span></li>';
+        } catch (e) {
+          el('slotList').innerHTML = '<li class="slot-item"><span class="pulse-mag">Error: ' + (e.message || e) + '</span></li>';
+        }
+      }
+
+      async function loadPulsePage() {
+        if (!contract) return;
+        const page = parseInt(el('pulsePage').value, 10) || 1;
+        const list = el('pulseListFull');
+        list.innerHTML = '<li class="pulse-item"><span class="pulse-mag">Loading…</span></li>';
+        try {
+          const count = await contract.pulseCounter();
+          const total = Number(count);
+          const start = (page - 1) * PAGE_SIZE + 1;
+          const end = Math.min(start + PAGE_SIZE - 1, total);
+          list.innerHTML = '';
+          for (let i = end; i >= start && i >= 1; i--) {
+            const p = await contract.getPulse(i);
+            const [scanner, trendHash, magnitude, slotIndex, submitBlock, confirmed, rejected] = p;
+            const status = confirmed ? 'confirmed' : (rejected ? 'rejected' : 'pending');
+            const li = document.createElement('li');
+            li.className = 'pulse-item';
+            li.innerHTML = '<span class="pulse-id">#' + i + '</span><span class="pulse-mag">slot=' + slotIndex + ' mag=' + magnitude.toString() + '</span><span class="pulse-status ' + status + '">' + status + '</span><span class="pulse-mag">' + shortAddr(scanner) + '</span>';
+            list.appendChild(li);
+          }
+          if (start > total) list.innerHTML = '<li class="pulse-item"><span class="pulse-mag">No pulses on this page.</span></li>';
+        } catch (e) {
+          list.innerHTML = '<li class="pulse-item"><span class="pulse-mag">Error: ' + (e.message || e) + '</span></li>';
+        }
+      }
+
+      async function loadSlotListFull() {
+        if (!contract) return;
+        const list = el('slotListFull');
+        list.innerHTML = '';
+        try {
+          const count = await contract.slotCounter();
+          for (let i = 0; i < Number(count) + 3; i++) {
+            const s = await contract.getSlot(i);
+            const [startBlock, endBlock, pulseCount, totalMagnitude, winningMagnitude, closed] = s;
+            const li = document.createElement('li');
+            li.className = 'slot-item';
+            li.innerHTML = '<span class="pulse-id">Slot ' + i + '</span><span>' + startBlock + '–' + endBlock + '</span><span>pulses=' + pulseCount + ' mag=' + totalMagnitude.toString() + '</span><span class="pulse-status ' + (closed ? 'rejected' : 'pending') + '">' + (closed ? 'closed' : 'open') + '</span>';
+            list.appendChild(li);
+          }
+        } catch (e) {
+          list.innerHTML = '<li class="slot-item"><span class="pulse-mag">Error: ' + (e.message || e) + '</span></li>';
+        }
+      }
+
+      async function lookupScanner() {
+        const addr = (el('scannerAddress').value || '').trim();
+        if (!addr || !addr.startsWith('0x') || !contract) { showToast('Enter valid address and connect contract', 'error'); return; }
+        const result = el('scannerResult');
+        result.style.display = 'block';
+        result.innerHTML = 'Loading…';
+        try {
+          const [stake, totalPulses, confirmedPulses, lastSubmitBlock, banned, totalRewardsClaimed] = await contract.getScanner(addr);
+          result.innerHTML = '<h3>Scanner ' + shortAddr(addr) + '</h3><p>Stake: ' + formatEth(stake) + '</p><p>Total pulses: ' + totalPulses + '</p><p>Confirmed: ' + confirmedPulses + '</p><p>Last submit block: ' + lastSubmitBlock + '</p><p>Banned: ' + (banned ? 'Yes' : 'No') + '</p><p>Total rewards claimed: ' + formatEth(totalRewardsClaimed) + '</p>';
+        } catch (e) {
+          result.innerHTML = 'Error: ' + (e.message || e);
+        }
+      }
+
+      async function buildLeaderboard() {
+        const list = el('leaderboardList');
+        list.innerHTML = 'Loading leaderboard…';
+        if (!contract) { list.innerHTML = 'Connect contract first.'; return; }
+        try {
+          const count = await contract.pulseCounter();
